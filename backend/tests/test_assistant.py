@@ -22,7 +22,7 @@ def test_assistant_endpoint_basic():
     data = response.json()
     assert "answer" in data
     assert "source" in data
-    assert data["source"] == "deterministic_engine"
+    assert data["source"] in ["openrouter_llm", "deterministic_engine"]
 
 
 def test_assistant_vehicle_update_relevance():

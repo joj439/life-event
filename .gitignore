@@ -1,21 +1,30 @@
 # Dependencies
 node_modules/
 
-# Environment variables / API keys
+# Environment variables & API keys (Never commit secrets)
 .env
-.env.local
-.env.*.local
-
-# Build output
-dist/
-build/
-.next/
+.env.*
+*.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 .venv/
 venv/
+env/
+
+# Build & Deployment
+dist/
+build/
+.vercel/
 
 # Logs
 *.log

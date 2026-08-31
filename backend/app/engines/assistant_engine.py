@@ -13,6 +13,7 @@ from app.schemas.models import (
 )
 from app.engines.service_engine import evaluate_services_for_life_event
 from app.engines.document_engine import compute_service_readiness
+from app.engines.openrouter_client import call_openrouter
 from app.data.seed_data import DEMO_USER_ID
 
 logger = logging.getLogger(__name__)
@@ -338,26 +339,70 @@ def generate_assistant_response(
     service_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Main Assistant entrypoint across all 4 life event scenarios.
+    Main Assistant entrypoint across all 4 life event scenarios:
+    1. Builds structured context from repositories & business engines.
+    2. Generates deterministic baseline answer.
+    3. If OPENROUTER_API_KEY is configured, calls OpenRouter with strict grounding.
+    4. Falls back to deterministic answer if OpenRouter is unconfigured, times out, or fails.
     """
     ctx = build_assistant_context(life_event_id, service_id)
     cleaned_message = message.strip()
 
-    # Deterministic generation (primary/default)
+    # Deterministic generation (baseline)
     deterministic_answer = generate_deterministic_response(cleaned_message, ctx)
+    source = "deterministic_engine"
+    final_answer = deterministic_answer
 
-    # Optional Gemini LLM Execution if key configured
-    if settings.GEMINI_API_KEY:
+    # OpenRouter LLM Execution if key configured
+    if settings.OPENROUTER_API_KEY.strip():
         try:
-            import httpx
-            # If external call fails, deterministic_answer is used safely
+            grounded_system_prompt = f"""You are "Ask LifeEvent", a trusted citizen assistant for the LifeEvent public service navigation platform.
+You help citizens understand the government service roadmap already deterministically mapped for them.
+
+GROUNDING RULES:
+1. ONLY answer using facts directly in the STRUCTURED CONTEXT below.
+2. NEVER invent legal deadlines (e.g. "within 30 days"), fees, or non-grounded government laws.
+3. For Financial Fraud: direct user to cybercrime.gov.in and helpline 1930; suggest freezing cards/UPI.
+4. For Relocation: explain relevant services and checklist status.
+5. For Marriage: explain Marriage Registration and Aadhaar Demographic Update.
+6. For Family Death: prioritize Death Registration / Certificate first before survivor benefits.
+7. If the answer cannot be determined from the structured context, respond with EXACTLY:
+"{FALLBACK_UNKNOWN_MESSAGE}"
+
+STRUCTURED CONTEXT:
+- Life Event Type: {ctx.get('event_type')}
+- Input Description: {ctx.get('raw_input')}
+- Origin City: {ctx.get('origin')}
+- Destination City: {ctx.get('destination')}
+- Available Items: {', '.join(ctx.get('available_documents', [])) or 'None'}
+- Missing / Needed Items: {', '.join(ctx.get('missing_documents', [])) or 'None'}
+- Total Items Tracked: {ctx.get('total_documents')} (Available: {ctx.get('available_count')})
+- Recommended Services: {', '.join([s['name'] for s in ctx.get('recommended_services', [])])}
+- Applications: {', '.join([f"{a['service_name']} ({a['status']})" for a in ctx.get('applications', [])])}
+- Active Service in Focus: {ctx['active_service']['name'] if ctx.get('active_service') else 'None'}
+"""
+            llm_text = call_openrouter(
+                messages=[{"role": "user", "content": cleaned_message}],
+                system_prompt=grounded_system_prompt,
+                temperature=0.2,
+                max_tokens=500,
+                timeout_seconds=30.0
+            )
+
+            if llm_text:
+                final_answer = llm_text
+                source = "openrouter_llm"
+                logger.info("OpenRouter successfully generated grounded assistant response.")
+            else:
+                source = "deterministic_fallback"
         except Exception as e:
-            logger.warning(f"Optional LLM call failed: {e}. Falling back to deterministic engine.")
+            logger.warning(f"OpenRouter Assistant execution failed ({e}). Using deterministic fallback.")
+            source = "deterministic_fallback"
 
     return {
-        "answer": deterministic_answer,
+        "answer": final_answer,
         "service_id": service_id,
-        "source": "deterministic_engine",
+        "source": source,
         "context_used": {
             "event_type": ctx.get("event_type", "relocation"),
             "origin": ctx.get("origin"),
