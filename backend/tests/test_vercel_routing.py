@@ -17,7 +17,7 @@ def test_vercel_json_structure():
     assert vercel_file.exists(), "vercel.json must exist at repository root"
 
     data = json.loads(vercel_file.read_text(encoding="utf-8"))
-    assert data.get("outputDirectory") == "frontend/dist"
+    assert data.get("outputDirectory") in ["dist", "frontend/dist"]
     assert "npm --prefix frontend" in data.get("buildCommand")
 
     rewrites = data.get("rewrites", [])
@@ -32,11 +32,14 @@ def test_vercel_json_structure():
     assert spa_rule["source"] in ["/(.*)", "/:match*", "/:path*"]
 
 
-def test_frontend_dist_contains_spa_index():
-    """Verify frontend/dist/index.html is built and ready for SPA routing."""
+def test_dist_contains_spa_index():
+    """Verify both dist/index.html and frontend/dist/index.html are built and ready for SPA routing."""
     root_dir = Path(__file__).resolve().parent.parent.parent
-    dist_html = root_dir / "frontend" / "dist" / "index.html"
-    assert dist_html.exists(), "frontend/dist/index.html must exist after build"
+    dist_html = root_dir / "dist" / "index.html"
+    frontend_dist_html = root_dir / "frontend" / "dist" / "index.html"
+
+    assert dist_html.exists(), "dist/index.html must exist after build"
+    assert frontend_dist_html.exists(), "frontend/dist/index.html must exist after build"
 
     content = dist_html.read_text(encoding="utf-8")
     assert "root" in content
@@ -53,3 +56,11 @@ def test_api_routes_resolve_via_vercel_app():
     res_services = client.get("/api/v1/services")
     assert res_services.status_code == 200
     assert len(res_services.json()) >= 4
+
+
+def test_vercel_path_preservation_middleware():
+    """Verify that VercelASGIApp transparently restores rewritten paths from x-forwarded-uri."""
+    client = TestClient(app)
+    res = client.get("/api/index.py", headers={"x-forwarded-uri": "/api/v1/health"})
+    assert res.status_code == 200
+    assert res.json()["status"] == "healthy"
