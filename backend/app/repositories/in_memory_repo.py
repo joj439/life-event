@@ -133,5 +133,5 @@ class InMemoryRepository(BaseRepository):
         return event
 
 
-# Global singleton instance for the app
-repo = InMemoryRepository()
+# Backward-compatible global singleton: delegates dynamically to factory
+from app.repositories.factory import repo

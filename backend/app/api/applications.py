@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.models import Application
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 from app.data.seed_data import DEMO_USER_ID
 
 router = APIRouter(prefix="/applications", tags=["Applications"])

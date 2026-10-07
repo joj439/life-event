@@ -36,4 +36,20 @@ class Settings(BaseSettings):
     # Optional Gemini Legacy Key
     GEMINI_API_KEY: str = ""
 
+    # MySQL Database Configuration
+    MYSQL_HOST: str = "localhost"
+    MYSQL_PORT: int = 3306
+    MYSQL_USER: str = "root"
+    MYSQL_PASSWORD: str = ""
+    MYSQL_DATABASE: str = "lifeevent_db"
+    USE_MYSQL: bool = False
+
+    @property
+    def DATABASE_URL(self) -> str:
+        import urllib.parse
+        encoded_pwd = urllib.parse.quote_plus(self.MYSQL_PASSWORD) if self.MYSQL_PASSWORD else ""
+        if encoded_pwd:
+            return f"mysql+pymysql://{self.MYSQL_USER}:{encoded_pwd}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+        return f"mysql+pymysql://{self.MYSQL_USER}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+
 settings = Settings()

@@ -4,7 +4,7 @@ from app.schemas.requests import AnalyzeLifeEventRequest, ContextAnswersRequest,
 from app.engines.nlp_extractor import extract_life_event
 from app.engines.service_engine import evaluate_services_for_life_event
 from app.engines.document_engine import compute_overall_readiness
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 from app.data.seed_data import DEMO_USER_ID
 
 router = APIRouter(prefix="/life-events", tags=["Life Events"])

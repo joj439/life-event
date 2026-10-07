@@ -4,7 +4,7 @@ from app.schemas.requests import DocumentListResponse, ToggleDocumentRequest
 from app.schemas.models import UserDocument, DocumentStatus, ContextAnswers
 from app.engines.document_engine import compute_overall_readiness
 from app.engines.service_engine import evaluate_services_for_life_event
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 from app.data.seed_data import DEMO_USER_ID
 
 router = APIRouter(prefix="/documents", tags=["Documents"])

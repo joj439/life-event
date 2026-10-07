@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 
 router = APIRouter(prefix="/demo", tags=["Demo Management"])
 

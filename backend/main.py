@@ -1,12 +1,21 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.router import api_router
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.USE_MYSQL:
+        from app.db.connection import verify_db_connection
+        verify_db_connection()
+    yield
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
-    description="Citizen-centric government service navigator organized around life events."
+    description="Citizen-centric government service navigator organized around life events.",
+    lifespan=lifespan
 )
 
 # CORS configuration

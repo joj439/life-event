@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Dict, Any, Optional, List
 from app.config import settings
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 from app.schemas.models import (
     LifeEvent,
     ContextAnswers,

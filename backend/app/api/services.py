@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.models import Service
 from app.engines.document_engine import compute_service_readiness
-from app.repositories.in_memory_repo import repo
+from app.repositories import repo
 from app.data.seed_data import DEMO_USER_ID
 
 router = APIRouter(prefix="/services", tags=["Services"])
